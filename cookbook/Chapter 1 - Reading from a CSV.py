@@ -1,7 +1,7 @@
 # %%
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import polars as pl
 
 # %%
 # Reading data from a csv file
@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 broken_df = pd.read_csv("../data/bikes.csv", encoding="ISO-8859-1")
 
 # TODO: please load the data with the Polars library (do not forget to import Polars at the top of the script) and call it pl_broken_df
-
+pl_broken_df = pl.read_csv("../data/bikes.csv", encoding="ISO-8859-1")
 # %%
 # Look at the first 3 rows
 broken_df[:3]
 
 # TODO: do the same with your polars data frame, pl_broken_df
-
+pl_broken_df.head(3)
 # %%
 # You'll notice that this is totally broken! `read_csv` has a bunch of options that will let us fix that, though. Here we'll
 
