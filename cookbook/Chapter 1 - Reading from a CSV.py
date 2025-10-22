@@ -29,7 +29,7 @@ pl_broken_df.head(3)
 # * Parse the dates in the 'Date' column
 # * Tell it that our dates have the day first instead of the month first
 # * Set the index to be the 'Date' column
-
+print("hi")
 fixed_df = pd.read_csv(
     "../data/bikes.csv",
     sep=";",
