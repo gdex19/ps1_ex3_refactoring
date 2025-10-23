@@ -1,7 +1,9 @@
 # %%
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
+import polars as pl
 
 plt.style.use("ggplot")
 plt.rcParams["figure.figsize"] = (15, 3)
@@ -11,11 +13,22 @@ plt.rcParams["font.family"] = "sans-serif"
 # By the end of this chapter, we're going to have downloaded all of Canada's weather data for 2012, and saved it to a CSV. We'll do this by downloading it one month at a time, and then combining all the months together.
 # Here's the temperature every hour for 2012!
 
-weather_2012_final = pd.read_csv("../data/weather_2012.csv", index_col="date_time")
-weather_2012_final["temperature_c"].plot(figsize=(15, 6))
-plt.show()
+# Old implementation
+# weather_2012_final = pd.read_csv("../data/weather_2012.csv", index_col="date_time")
+# weather_2012_final["temperature_c"].plot(figsize=(15, 6))
+# plt.show()
 
-# TODO: rewrite using Polars
+# Polars implementation - not exactly the same, no indexes and polars plotting wasn't cooperating
+weather_2012_final = pl.read_csv("../data/weather_2012.csv")
+x = weather_2012_final.get_column("date_time").to_list()
+y = weather_2012_final.get_column("temperature_c").to_list()
+
+fig, ax = plt.subplots(figsize=(15, 6))
+ax.plot(x, y)
+ax.set_xlabel("date_time")
+ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+
+plt.show()
 
 # %%
 # Okay, let's start from the beginning.
@@ -25,60 +38,84 @@ plt.show()
 # here: https://github.com/jvns/pandas-cookbook/pull/74 and click on "Files changed" and then fix the url.
 
 
-# This URL has to be fixed first!
-url_template = "http://climate.weather.gc.ca/climateData/bulkdata_e.html?format=csv&stationID=5415&Year={year}&Month={month}&timeframe=1&submit=Download+Data"
+# This URL is fixed
+url_template = "http://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=5415&Year={year}&Month={month}&timeframe=1&submit=Download+Data"
 
 year = 2012
 month = 3
 url_march = url_template.format(month=3, year=2012)
-weather_mar2012 = pd.read_csv(
+
+# Old implementation
+# weather_mar2012 = pd.read_csv(
+#     url_march,
+#     index_col="Date/Time (LST)",
+#     parse_dates=True,
+#     encoding="latin1",
+#     header=0,
+# )
+# weather_mar2012.head()
+
+# Polars implementation
+weather_mar2012 = pl.read_csv(
     url_march,
-    index_col="Date/Time (LST)",
-    parse_dates=True,
+    try_parse_dates=True,
     encoding="latin1",
-    header=0,
+    has_header=True,
 )
 weather_mar2012.head()
-
-# TODO: rewrite using Polars. Yes, Polars can handle URLs similarly.
 
 
 # %%
 # Let's clean up the data a bit.
 # You'll notice in the summary above that there are a few columns which are are either entirely empty or only have a few values in them. Let's get rid of all of those with `dropna`.
 # The argument `axis=1` to `dropna` means "drop columns", not rows", and `how='any'` means "drop the column if any value is null".
-weather_mar2012 = weather_mar2012.dropna(axis=1, how="any")
+
+# Old implementation
+# weather_mar2012 = weather_mar2012.dropna(axis=1, how="any")
+# weather_mar2012[:5]
+
+# Polars implementation
+weather_mar2012 = weather_mar2012.drop_nans()
 weather_mar2012[:5]
 
 # This is much better now -- we only have columns with real data.
-
-# TODO: rewrite using Polars
-
 
 # %%
 # Let's get rid of columns that we do not need.
 # For example, the year, month, day, time columns are redundant (we have Date/Time (LST) column).
 # Let's get rid of those. The `axis=1` argument means "Drop columns", like before. The default for operations like `dropna` and `drop` is always to operate on rows.
-weather_mar2012 = weather_mar2012.drop(["Year", "Month", "Day", "Time (LST)"], axis=1)
-weather_mar2012[:5]
 
-# TODO: redo this using polars
+# Old Implementation
+# weather_mar2012 = weather_mar2012.drop(["Year", "Month", "Day", "Time (LST)"], axis=1)
+# weather_mar2012[:5]
+
+# Polars Implementation
+weather_mar2012 = weather_mar2012.drop(["Year", "Month", "Day", "Time (LST)"])
+weather_mar2012[:5]
 
 # %%
 # When you look at the data frame, you see that some column names have some weird characters in them.
 # Let's clean this up, too.
 # Let's print the column names first:
-weather_mar2012.columns
+print(weather_mar2012.columns)
 
+# Old implementation
+# # And now rename the columns to make it easier to work with
+# weather_mar2012.columns = weather_mar2012.columns.str.replace(
+#     'ï»¿"', ""
+# )  # Remove the weird characters at the beginning
+# weather_mar2012.columns = weather_mar2012.columns.str.replace(
+#     "Â", ""
+# )  # Remove the weird characters at the
+
+# Polars implementation
 # And now rename the columns to make it easier to work with
-weather_mar2012.columns = weather_mar2012.columns.str.replace(
-    'ï»¿"', ""
-)  # Remove the weird characters at the beginning
-weather_mar2012.columns = weather_mar2012.columns.str.replace(
-    "Â", ""
-)  # Remove the weird characters at the
+weather_mar2012.columns = [s.replace('ï»¿"', "") for s in weather_mar2012.columns]
+# Remove the weird characters at the beginning
+weather_mar2012.columns = [s.replace("Â", "") for s in weather_mar2012.columns]
+# Remove the weird characters at the
 
-# TODO: rewrite using Polars
+weather_mar2012.columns
 
 
 # %%
